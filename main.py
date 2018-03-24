@@ -22,9 +22,10 @@ PATH_TO_LOCAL_LOGS = os.path.expanduser("~/logs/toy-distributed-tf")
 
 if job_name == None: #if running locally
     logs = PATH_TO_LOCAL_LOGS
+    data_dir = os.path.expanduser("~/data/101_ObjectCategories")
 else:
     logs = "/logs"
-
+    data_dir = "/data/malo/malo-caltech-101"
 
 flags.DEFINE_string("job_name", job_name,
                     "job name: worker or ps")
@@ -40,7 +41,8 @@ flags.DEFINE_string("ps_hosts", ps_hosts,
                     "Comma-separated list of hostname:port pairs")
 flags.DEFINE_string("worker_hosts", worker_hosts,
                     "Comma-separated list of hostname:port pairs")
-
+flags.DEFINE_string("data_dir", data_dir,
+                    "Comma-separated list of hostname:port pairs")
 
 
 def device_and_target():
@@ -92,7 +94,7 @@ def main(_):
             print(sess.run(a, feed_dict={a:3}))
 
 def main_2(_):
-    filelist = get_filelist(os.path.expanduser("~/data/101_ObjectCategories"))
+    filelist = get_filelist(datadir)
     print(filelist)
     dataset = construct_dataset(filelist,FLAGS.num_workers,FLAGS.worker_index)
     # dataset = tf.data.Dataset.range(6)
