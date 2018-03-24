@@ -26,6 +26,7 @@ if job_name == None: #if running locally
 else:
     logs = "/logs"
     data_dir = "/data/malo/malo-caltech-101"
+    assert os.path.isdir(data_dir)
 
 flags.DEFINE_string("job_name", job_name,
                     "job name: worker or ps")
