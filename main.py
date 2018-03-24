@@ -94,8 +94,8 @@ def main(_):
             print(sess.run(a, feed_dict={a:3}))
 
 def main_2(_):
-    filelist = get_filelist(datadir)
-    print(filelist)
+    filelist = get_filelist(FLAGS.data_dir)
+    # print(filelist)
     dataset = construct_dataset(filelist,FLAGS.num_workers,FLAGS.worker_index)
     # dataset = tf.data.Dataset.range(6)
     iterator = dataset.make_one_shot_iterator()
