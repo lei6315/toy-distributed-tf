@@ -1,6 +1,7 @@
 import os
 import tensorflow as tf
 from input import *
+from model import *
 
 try:
      job_name = os.environ['JOB_NAME']
@@ -44,7 +45,14 @@ flags.DEFINE_string("worker_hosts", worker_hosts,
                     "Comma-separated list of hostname:port pairs")
 flags.DEFINE_string("data_dir", data_dir,
                     "Comma-separated list of hostname:port pairs")
+flags.DEFINE_integer("batch_size",64,"Size of the batch of data")
+flags.DEFINE_float("reg_weight",1e-3,"Regularization weight")
+flags.DEFINE_string("run_id",None,"Id of the run, a new folder will be created locally for checkpoints if supplied")
+flags.DEFINE_float("lr",1e-3,"Learning rate")
 
+if not FLAGS.run_id == None and job_name == None:
+    logs += "/run-" + FLAGS.run_id
+    print("Saving checkpoints and outputs at %s" % logs)
 
 def device_and_target():
     # If FLAGS.job_name is not set, we're running single-machine TensorFlow.
@@ -82,37 +90,81 @@ def device_and_target():
 
 device, target = device_and_target()
 
+
 def main(_):
-    #Model
-    a = tf.placeholder(tf.int32)
-
-    # hooks=[tf.train.StopAtStepHook(last_step=100)]
-    hooks = []
-    with tf.train.MonitoredTrainingSession(master=target,
-        is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks) as sess:
-
-        for i in range(100):
-            print(sess.run(a, feed_dict={a:3}))
-
-def main_2(_):
-    filelist = get_filelist(FLAGS.data_dir)
-    # print(filelist)
-    dataset = construct_dataset(filelist,FLAGS.num_workers,FLAGS.worker_index)
-    # dataset = tf.data.Dataset.range(6)
+    filelist, labels = get_filelist(FLAGS.data_dir)
+    encoding, decoding = get_class_encoding(labels)
+    print("Loading dataset")
+    dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
+    print("Dataset loaded")
     iterator = dataset.make_one_shot_iterator()
-    res = iterator.get_next()
-    with tf.Session() as sess:
-            print(sess.run(res))
-            print("--------------")
-            print("--------------")
-            print("--------------")
-            print(sess.run(res))
-            print("--------------")
-            print("--------------")
-            print("--------------")
-            print(sess.run(res))
+
+    batch = iterator.get_next()
+    img_batch, filepath_batch, label_batch = batch
+
+    num_classes = len(encoding.keys())
+    regularizer = tf.contrib.layers.l2_regularizer(scale=FLAGS.reg_weight)
+
+    logits, probs, preds, batch_img = cnn(img_batch, num_classes,regularizer)
+
+    #Apply regularizer
+    reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
+
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=label_batch, logits=logits)
+    loss += reg_term
+
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.lr)
+    training_summary = tf.summary.scalar('Training_Loss', loss)#add to tboard
+
+    global_step = tf.train.get_or_create_global_step()
+
+    train_op = optimizer.minimize(
+        loss=loss,
+        global_step=global_step
+        )
+    hooks=[tf.train.StopAtStepHook(last_step=1000)]
+
+    with tf.train.MonitoredTrainingSession(master=target,
+        is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
+        save_summaries_steps = 5) as sess:
+        #TODO: restore save_summaries_steps default, here it is saving frequently and slowing down training
+        while not sess.should_stop():
+            sess.run(train_op)
+            loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
+            print(loss_val)
+            print(batch_img_val.shape)
+
+    #TODO: add this in the Dataset
+    #https://www.tensorflow.org/programmers_guide/datasets
+#
+# def main_debug(_):
+#     filelist, labels = get_filelist(FLAGS.data_dir)
+#     encoding, decoding = get_class_encoding(labels)
+#     dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
+#     iterator = dataset.make_one_shot_iterator()
+#
+#     batch = iterator.get_next()
+#     img_batch, filepath_batch, label_batch = batch
+#
+#     with tf.Session() as sess:
+#         for i in range(1):
+#             one_img = sess.run(label_batch)
+#             print(one_img)
+#             print(sum(one_img))
+#
+#
+#     # dataset = tf.data.Dataset.range(6)
+#
+#     # sum = tf.summary.image(
+#     #     name,
+#     #     iterator[3],
+#     #     max_outputs=3,
+#     #     collections=None,
+#     #     family=None)
+#     #
 
 
 
 if __name__ == "__main__":
-    tf.app.run(main=main_2)
+    tf.app.run(main=main)
