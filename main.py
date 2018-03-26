@@ -21,7 +21,10 @@ FLAGS = flags.FLAGS
 
 PATH_TO_LOCAL_LOGS = os.path.expanduser("~/logs/toy-distributed-tf")
 
-if job_name == None: #if running locally
+environment = os.environ.get('CLUSTERONE_CLOUD') or os.environ.get('TENSORPORT_CLOUD')
+environment = 'clusterone-cloud' if environment else "local"
+
+if environment == 'local': #if running locally
     logs = PATH_TO_LOCAL_LOGS
     data_dir = os.path.expanduser("~/data/101_ObjectCategories")
 else:
