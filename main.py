@@ -49,7 +49,7 @@ flags.DEFINE_string("worker_hosts", worker_hosts,
 flags.DEFINE_string("data_dir", data_dir,
                     "Comma-separated list of hostname:port pairs")
 flags.DEFINE_integer("batch_size",64,"Size of the batch of data")
-flags.DEFINE_float("reg_weight",1e-3,"Regularization weight")
+flags.DEFINE_float("reg_weight",1e-6,"Regularization weight")
 flags.DEFINE_string("run_id",None,"Id of the run, a new folder will be created locally for checkpoints if supplied")
 flags.DEFINE_float("lr",1e-3,"Learning rate")
 
@@ -133,12 +133,15 @@ def main(_):
         is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
         save_summaries_steps = 5) as sess:
         #TODO: restore save_summaries_steps default, here it is saving frequently and slowing down training
-        while not sess.should_stop():
-            sess.run(train_op)
-            loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
-            print(loss_val)
-            print(batch_img_val.shape)
-            print(sess.should_stop())
+        try:
+            while not sess.should_stop():
+                sess.run(train_op)
+                loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
+                print(loss_val)
+                print(batch_img_val.shape)
+                print(sess.should_stop())
+        except Exception as e:
+            print(e)
 
     #TODO: add this in the Dataset
     #https://www.tensorflow.org/programmers_guide/datasets
