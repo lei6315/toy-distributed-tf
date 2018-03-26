@@ -93,6 +93,7 @@ device, target = device_and_target()
 
 def main(_):
     filelist, labels = get_filelist(FLAGS.data_dir)
+    print("Reading from %s image files" % len(filelist))
     encoding, decoding = get_class_encoding(labels)
     print("Loading dataset")
     dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
