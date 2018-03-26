@@ -124,7 +124,7 @@ def main(_):
         loss=loss,
         global_step=global_step
         )
-    hooks=[tf.train.StopAtStepHook(last_step=1000)]
+    hooks=[tf.train.StopAtStepHook(last_step=1000000)]
 
     with tf.train.MonitoredTrainingSession(master=target,
         is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
@@ -135,6 +135,7 @@ def main(_):
             loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
             print(loss_val)
             print(batch_img_val.shape)
+            print(sess.should_stop())
 
     #TODO: add this in the Dataset
     #https://www.tensorflow.org/programmers_guide/datasets
