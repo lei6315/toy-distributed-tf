@@ -29,7 +29,7 @@ if environment == 'local': #if running locally
     data_dir = os.path.expanduser("~/data/101_ObjectCategories")
 else:
     logs = "/logs"
-    data_dir = "/data/malo/malo-caltech-101"
+    data_dir = "/data/malo/malo-caltech-101-n"
     assert os.path.isdir(data_dir)
 
 flags.DEFINE_string("job_name", job_name,
@@ -128,6 +128,9 @@ def main(_):
         global_step=global_step
         )
     hooks=[tf.train.StopAtStepHook(last_step=1000000)]
+    # reshuffle etc
+
+    #TODO : reinitializable dataset.make_initializable_iterator()
 
     with tf.train.MonitoredTrainingSession(master=target,
         is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
