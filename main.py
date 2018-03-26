@@ -135,11 +135,8 @@ def main(_):
         #TODO: restore save_summaries_steps default, here it is saving frequently and slowing down training
         try:
             while not sess.should_stop():
-                sess.run(train_op)
-                loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
-                print(loss_val)
-                print(batch_img_val.shape)
-                print(sess.should_stop())
+                b = sess.run(batch)
+                print(b[0].shape)
         except Exception as e:
             print(e)
 
