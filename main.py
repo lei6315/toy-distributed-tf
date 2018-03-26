@@ -49,9 +49,9 @@ flags.DEFINE_string("worker_hosts", worker_hosts,
 flags.DEFINE_string("data_dir", data_dir,
                     "Comma-separated list of hostname:port pairs")
 flags.DEFINE_integer("batch_size",64,"Size of the batch of data")
-flags.DEFINE_float("reg_weight",1e-6,"Regularization weight")
+flags.DEFINE_float("reg_weight",1e-3,"Regularization weight")
 flags.DEFINE_string("run_id",None,"Id of the run, a new folder will be created locally for checkpoints if supplied")
-flags.DEFINE_float("lr",1e-3,"Learning rate")
+flags.DEFINE_float("lr",1e-6,"Learning rate")
 
 if not FLAGS.run_id == None and job_name == None:
     logs += "/run-" + FLAGS.run_id
@@ -95,6 +95,7 @@ device, target = device_and_target()
 
 
 def main(_):
+    # with tf.device(device):
     filelist, labels = get_filelist(FLAGS.data_dir)
     print("Reading from %s image files" % len(filelist))
     encoding, decoding = get_class_encoding(labels)
