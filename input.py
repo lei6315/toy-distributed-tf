@@ -19,7 +19,7 @@ def get_filelist(data_root):
                 labels.append(subdir.split("/")[-1])
                 # dict[os.path.join(subdir, file)] = subdir.split("/")[-1]
     return filelist, labels
-    
+
 
 def get_class_encoding(classes):
     """Sort classes in alphabetical order so that the encoding is always the same,
@@ -56,7 +56,8 @@ def _parse_function(filepath, label):
     return image_resized, filepath, label
 
 def construct_dataset(filenames, labels, batch_size, num_workers,worker_index):
-    """Instantiate a dataset object from filenames.
+    """Instantiate a dataset object from filenames. Data will not be sharded so
+    workers will see the same batch multiple times. This will avergae out across epochs.
         Returns a tensor of (image, filepath, label)
         :param filenames: a list of image file path
         :param labels: the associated labels
@@ -65,7 +66,7 @@ def construct_dataset(filenames, labels, batch_size, num_workers,worker_index):
     """
     dataset = tf.data.TextLineDataset(filenames)
     dataset = tf.data.Dataset.from_tensor_slices((filenames,labels))
-    dataset = dataset.shard(num_workers, worker_index)
+    #dataset = dataset.shard(num_workers, worker_index)
     dataset = dataset.shuffle(buffer_size=10000)  # Equivalent to min_after_dequeue=10000.
     dataset = dataset.map(_parse_function)
     #TODO - careful here, we are reading the same data at each epoch

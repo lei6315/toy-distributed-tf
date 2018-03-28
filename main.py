@@ -9,6 +9,7 @@ try:
      ps_hosts = os.environ['PS_HOSTS']
      worker_hosts = os.environ['WORKER_HOSTS']
      num_workers = len(worker_hosts)
+     print(num_workers)
 except:
     job_name = None
     task_index = 0
@@ -29,7 +30,7 @@ if environment == 'local': #if running locally
     data_dir = os.path.expanduser("~/data/101_ObjectCategories")
 else:
     logs = "/logs"
-    data_dir = "/data/malo/malo-caltech-101-n"
+    data_dir = "/data/malo/malo-caltech-101"
     assert os.path.isdir(data_dir)
 
 flags.DEFINE_string("job_name", job_name,
@@ -95,43 +96,43 @@ device, target = device_and_target()
 
 
 def main(_):
-    # with tf.device(device):
-    filelist, labels = get_filelist(FLAGS.data_dir)
-    print("Reading from %s image files" % len(filelist))
-    encoding, decoding = get_class_encoding(labels)
-    print("Loading dataset")
-    dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
-    print("Dataset loaded")
-    iterator = dataset.make_one_shot_iterator()
+    with tf.device(device):
+        filelist, labels = get_filelist(FLAGS.data_dir)
+        print("Reading from %s image files" % len(filelist))
+        encoding, decoding = get_class_encoding(labels)
+        print("Loading dataset")
+        dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
+        print("Dataset loaded")
+        iterator = dataset.make_one_shot_iterator()
 
-    batch = iterator.get_next()
-    img_batch, filepath_batch, label_batch = batch
+        batch = iterator.get_next()
+        img_batch, filepath_batch, label_batch = batch
 
-    num_classes = len(encoding.keys())
-    regularizer = tf.contrib.layers.l2_regularizer(scale=FLAGS.reg_weight)
+        num_classes = len(encoding.keys())
+        regularizer = tf.contrib.layers.l2_regularizer(scale=FLAGS.reg_weight)
 
-    logits, probs, preds, batch_img = cnn(img_batch, num_classes,regularizer)
+        logits, probs, preds, batch_img = cnn(img_batch, num_classes,regularizer)
 
-    #Apply regularizer
-    reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-    reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
+        #Apply regularizer
+        reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
 
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=label_batch, logits=logits)
-    loss += reg_term
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=label_batch, logits=logits)
+        loss += reg_term
 
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.lr)
-    training_summary = tf.summary.scalar('Training_Loss', loss)#add to tboard
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.lr)
+        training_summary = tf.summary.scalar('Training_Loss', loss)#add to tboard
 
-    global_step = tf.train.get_or_create_global_step()
+        global_step = tf.train.get_or_create_global_step()
 
-    train_op = optimizer.minimize(
-        loss=loss,
-        global_step=global_step
-        )
-    hooks=[tf.train.StopAtStepHook(last_step=1000000)]
-    # reshuffle etc
+        train_op = optimizer.minimize(
+            loss=loss,
+            global_step=global_step
+            )
+        hooks=[tf.train.StopAtStepHook(last_step=1000000)]
+        # reshuffle etc
 
-    #TODO : reinitializable dataset.make_initializable_iterator()
+        #TODO : reinitializable dataset.make_initializable_iterator()
 
     with tf.train.MonitoredTrainingSession(master=target,
         is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
