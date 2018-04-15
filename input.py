@@ -85,7 +85,7 @@ def test():
     print(labels[:1000])
 
     dataset = construct_dataset(filelist,labels,5,1,0)
-    a = dataset.make_one_shot_iterator()
+    a = dataset.make_initializable_iterator()
     with tf.Session() as sess:
         print(sess.run(a.get_next()))
 
