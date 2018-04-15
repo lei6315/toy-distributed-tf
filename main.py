@@ -103,7 +103,7 @@ def main(_):
         print("Loading dataset")
         dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
         print("Dataset loaded")
-        iterator = dataset.make_one_shot_iterator()
+        iterator = dataset.make_initializable_iterator()
 
         batch = iterator.get_next()
         img_batch, filepath_batch, label_batch = batch
@@ -138,45 +138,17 @@ def main(_):
         is_chief=(FLAGS.task_index == 0),checkpoint_dir=logs,hooks = hooks,
         save_summaries_steps = 5) as sess:
         #TODO: restore save_summaries_steps default, here it is saving frequently and slowing down training
+        sess.run(iterator.initializer)
         try:
             while not sess.should_stop():
                 sess.run(train_op)
                 loss_val, _ , batch_img_val= sess.run([loss,training_summary,batch_img])
                 print(loss_val)
-                print(batch_img_val.shape)
-                print(sess.should_stop())
         except Exception as e:
             print(e)
 
     #TODO: add this in the Dataset
     #https://www.tensorflow.org/programmers_guide/datasets
-#
-# def main_debug(_):
-#     filelist, labels = get_filelist(FLAGS.data_dir)
-#     encoding, decoding = get_class_encoding(labels)
-#     dataset = construct_dataset(filelist, encode(labels,encoding), FLAGS.batch_size, FLAGS.num_workers,FLAGS.worker_index)
-#     iterator = dataset.make_one_shot_iterator()
-#
-#     batch = iterator.get_next()
-#     img_batch, filepath_batch, label_batch = batch
-#
-#     with tf.Session() as sess:
-#         for i in range(1):
-#             one_img = sess.run(label_batch)
-#             print(one_img)
-#             print(sum(one_img))
-#
-#
-#     # dataset = tf.data.Dataset.range(6)
-#
-#     # sum = tf.summary.image(
-#     #     name,
-#     #     iterator[3],
-#     #     max_outputs=3,
-#     #     collections=None,
-#     #     family=None)
-#     #
-
 
 
 if __name__ == "__main__":
